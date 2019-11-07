@@ -1,0 +1,250 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Apr 17 10:36:05 2019
+
+@author: luy1
+"""
+
+# http://aplunket.com/titanic-kaggle-xgboost/
+# creat a xgboost pipeline for classification problems using titanic dataset as the toy dataset
+
+import os
+print(os.getcwd())
+
+os.chdir('/home/luy1/Desktop/pipe projects/datasets/titanic')
+print(os.getcwd())
+
+import numpy as np
+import pandas as pd
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+get_ipython().magic('matplotlib inline')
+sns.set(style = 'white', font_scale = 0.9)
+
+import xgboost as xgb
+from xgboost.sklearn import XGBClassifier
+
+from sklearn import model_selection, metrics
+from sklearn.model_selection import GridSearchCV
+
+df_train = pd.read_csv('train.csv')
+df_test = pd.read_csv('test.csv')
+
+df_train.shape
+df_test.shape
+
+df_total = df_train.append(df_test)
+df_total.shape
+df_total.head(10)
+
+df_total.columns
+df_total.dtypes
+
+df_total.info()
+df_train.info()
+df_test.info()
+
+df_train.groupby('Pclass')['Survived'].mean()
+
+sns.countplot(x= 'Pclass', data = df_train, hue = 'Survived', palette = 'deep')
+plt.show()
+
+df_train['Name'].head(10)
+
+df_train['Title'] = df_train['Name'].str.split('.').str[0]
+df_train['Title'].head(10)
+
+df_train['Title'] = df_train['Title'].str.split(' ').str[-1]
+df_train['Title'].head(10)
+
+df_test['Title'] = df_test['Name'].str.split('.').str[0]
+df_test['Title'] = df_test['Title'].str.split(' ').str[-1]
+
+df_train.drop('Name', axis = 1, inplace = True)
+df_test.drop('Name', axis = 1, inplace = True)
+
+df_train['Title'].value_counts()
+
+def updateTitle(s):
+    if s in ['Mlle', 'Ms', 'Mme']:
+        return 'Miss'
+    elif s in ['Mr', 'Miss', 'Mrs', 'Master']:
+        return s
+    else:
+        return 'Other'
+
+
+#df_train['Title'].value_counts()
+#df_train['Title'].isnull().sum()
+
+df_train['Title'] = df_train['Title'].apply(lambda x: updateTitle(x))
+df_test['Title'] = df_test['Title'].apply(lambda x: updateTitle(x))
+
+df_train['Title'].value_counts()
+df_test['Title'].value_counts()
+
+df_train.groupby('Title')['Survived'].mean()
+
+df_train['Survived'].value_counts()
+
+nNoSurvived = len(df_train[df_train['Survived'] == 0])
+nSurvived = len(df_train[df_train['Survived'] == 1])
+
+print(nNoSurvived)
+print(nSurvived)
+
+
+#subplot
+f, (ax1, ax2, ax3) = plt.subplots(1, 3, sharey = True, figsize = (9,3))
+
+sns.barplot(x = 'Title', y = 'PassengerId', data = df_train, 
+            estimator = lambda x: len(x)/(nSurvived+nNoSurvived)*100,
+            ax = ax1, order = sorted(df_train['Title'].unique()), palette = 'deep')
+sns.barplot(x = 'Title', y = 'PassengerId', data = df_train[df_train['Survived'] == 0],
+            estimator = lambda x: len(x)/nNoSurvived * 100,
+            ax = ax2, order = sorted(df_train['Title'].unique()), palette = 'deep')
+sns.barplot(x = 'Title', y = 'PassengerId', data = df_train[df_train['Survived'] == 1],
+            ax = ax3, order = sorted(df_train['Title'].unique()), palette = 'deep')
+
+ax1.set_title('Overall')
+ax2.set_title('Not Survived')
+ax3.set_title('Survived')
+ax1.set_ylabel('Percentage')
+ax2.set_ylabel('')
+ax3.set_ylabel('')
+
+plt.tight_layout()
+plt.show()
+
+
+df_train.groupby('Sex')['Survived'].mean()
+
+df_train.isnull().sum()
+df_test.isnull().sum()
+
+df_train['Age'] = df_train['Age'].fillna(df_total['Age'].mean())
+df_test['Age'] = df_test['Age'].fillna(df_total['Age'].mean())
+
+
+#subplots
+f, (ax1, ax2) = plt.subplots(2, 1, figsize = (7, 5))
+
+sns.distplot(df_train[df_train['Survived'] == 0]['Age'].astype(int), bins = 40, ax = ax1, kde = True)
+sns.distplot(df_train[df_train['Survived'] == 1]['Age'].astype(int), bins = 40, ax = ax2, kde = True)
+
+ax1.set_title('Not Survived')
+ax2.set_title('Survived')
+
+ax1.set_xbound(lower = 0, upper = 100)
+ax2.set_xbound(lower = 0, upper = 100)
+
+plt.tight_layout()
+plt.show()
+
+
+df_train['SibSp'].value_counts()
+df_train['Parch'].value_counts()
+
+df_train.groupby('SibSp')['Survived'].mean()
+df_train.groupby('Parch')['Survived'].mean()
+
+df_train['FamilySize'] = df_train['SibSp'] + df_train['Parch']
+df_test['FamilySize'] = df_test['SibSp'] + df_test['Parch']
+
+df_train.drop('SibSp', axis = 1, inplace = True)
+df_test.drop('SibSp', axis = 1, inplace = True)
+
+df_train.drop('Parch', axis = 1, inplace = True)
+df_test.drop('Parch', axis = 1, inplace = True)
+
+df_train['FamilySize'].head(5)
+
+df_train['FamilySize'] = df_train['FamilySize'].apply(lambda x: 4 if x > 4 else x)
+df_train['FamilySize'] = df_train['FamilySize'].apply(lambda x: 4 if x > 4 else x)
+
+df_train.groupby('FamilySize')['Survived'].mean()
+
+df_train['Ticket'] = df_train['Ticket'].str[0:1]
+df_test['Ticket'] = df_test['Ticket'].str[0:1]
+
+df_train.groupby('Ticket')['Survived'].mean()
+
+df_train['Fare'] = df_train['Fare'].fillna(df_total['Fare'].mean())
+df_test['Fare'] = df_test['Fare'].fillna(df_total['Fare'].mean())
+
+
+#subplots
+f, (ax1, ax2) = plt.subplots(2, 1, figsize = (7, 5))
+
+sns.distplot(df_train[df_train['Survived'] == 0]['Fare'].astype(int), bins = 30, ax = ax1, kde = True)
+sns.distplot(df_train[df_train['Survived'] == 1]['Fare'].astype(int), bins = 30, ax = ax2, kde = True)
+
+ax1.set_title('Not Survived')
+ax2.set_title('Survived')
+
+ax1.set_xbound(lower = 0)
+ax2.set_xbound(lower = 0)
+
+plt.tight_layout()
+plt.show()
+
+
+df_train.groupby('Survived')['Fare'].describe()
+
+
+df_train['Cabin'] = df_train['Cabin'].str[0]
+df_train['Cabin'] = df_train['Cabin'].fillna('Unknown')
+df_test['Cabin'] = df_test['Cabin'].str[0]
+df_test['Cabin'] = df_test['Cabin'].fillna('Unknown')
+
+
+df_train['Cabin'].value_counts()
+df_train.groupby('Cabin')['Survived'].mean()
+
+
+df_train['Embarked'] = df_train['Embarked'].fillna('Unknown')
+df_test['Embarked'] = df_test['Embarked'].fillna('Unknown')
+
+
+df_train['Embarked'].value_counts()
+
+df_train.groupby('Embarked')['Survived'].mean()
+
+
+df_train.info()
+df_test.info()
+
+df_train.head()
+df_test.head()
+
+df_train.to_csv('train_cat.csv')
+df_test.to_csv('test_cat.csv')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

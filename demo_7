@@ -1,0 +1,94 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Mon May 13 11:22:52 2019
+
+@author: luy1
+"""
+
+# https://medium.com/@mishra.thedeepak/doc2vec-simple-implementation-example-df2afbbfbad5
+# DOC2VEC gensim tutorial
+
+from gensim.models.doc2vec import Doc2Vec, TaggedDocument
+from nltk.tokenize import word_tokenize
+
+data = ["I love machine learning. It's waesome.",
+        "I love coding in python.",
+        "I love building chatbots",
+        "they chat amagingly well"
+        ]
+
+tagged_data = [TaggedDocument(words = word_tokenize(_d.lower()), tags = [str(i)]) for i, _d in enumerate(data)]
+tagged_data
+
+import nltk
+nltk.download('punkt')
+
+nltk.download()
+
+
+#https://www.machinelearningplus.com/nlp/gensim-tutorial/
+#Gensim Tutorial - A Complete Beginner Guide
+
+import gensim
+from gensim import corpora
+from pprint import pprint
+
+documents = ["The Saudis are preparing a report that will acknowledge that", 
+             "Saudi journalist Jamal Khashoggi's death was the result of an", 
+             "interrogation that went wrong, one that was intended to lead", 
+             "to his abduction from Turkey, according to two sources."]
+
+documents_2 = ["One source says the report will likely conclude that", 
+                "the operation was carried out without clearance and", 
+                "transparency and that those involved will be held", 
+                "responsible. One of the sources acknowledged that the", 
+                "report is still being prepared and cautioned that", 
+                "things could change."]
+
+
+texts = [[text for text in doc.split()] for doc in documents]
+texts
+
+dictionary = corpora.Dictionary(texts)
+print(dictionary)
+
+print(dictionary.token2id)
+
+
+texts_2 = [[text for text in doc.split()] for doc in documents_2]
+texts_2
+
+dictionary.add_documents(texts_2)
+print(dictionary)
+
+print(dictionary.token2id)
+
+#Gensim Tutorial-A Complete Beginners Guide
+#https://www.machinelearningplus.com/nlp/gensim-tutorial/
+
+import gensim
+from gensim import corpora
+from pprint import pprint
+
+documents = ["The Saudis are preparing a report that will acknowledge that", 
+             "Saudi journalist Jamal Khashoggi's death was the result of an", 
+             "interrogation that went wrong, one that was intended to lead", 
+             "to his abduction from Turkey, according to two sources."]
+
+documents_2 = ["One source says the report will likely conclude that", 
+                "the operation was carried out without clearance and", 
+                "transparency and that those involved will be held", 
+                "responsible. One of the sources acknowledged that the", 
+                "report is still being prepared and cautioned that", 
+                "things could change."]
+
+
+
+
+
+
+
+
+
+

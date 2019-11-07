@@ -1,0 +1,182 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Apr 17 14:31:56 2019
+
+@author: luy1
+"""
+
+import numpy as np
+import pandas as pd
+import xgboost as xgb
+
+from sklearn.model_selection import train_test_split
+
+train = pd.read_csv('train_cat.csv')
+test = pd.read_csv('test_cat.csv')
+
+pd.set_option('display.max_columns', 12)
+train.head(5)
+
+train = train.iloc[:, 1:]
+train.head(5)
+
+def encode_f(y, encoding):
+    return y.map(encoding)
+
+
+train.dtypes
+test.head(5)
+
+train.drop(['PassengerId'], axis =1, inplace = True)
+train.head(5)
+
+test.drop(['Unnamed: 0', 'PassengerId'], axis = 1, inplace = True)
+test.head(5)
+
+train.info()
+test.info()
+
+#input variables: Pclass, Sex, Age, Ticket, Fare, Cabin, Embarked, Title, FamilySize
+#output variable: Survived
+
+train['Survived'].value_counts()
+train['Sex'].value_counts()
+train['Ticket'].value_counts()
+
+np.unique(train['Ticket'])
+train['Cabin'].value_counts()
+train['Embarked'].value_counts()
+train['Title'].value_counts()
+train['FamilySize'].value_counts()
+
+
+#0: numeric encoding
+df = train.copy()
+df.head()
+
+X = df.loc[:, ['Pclass', 'Sex', 'Age', 'Ticket', 'Fare', 'Cabin', 'Embarked', 'Title', 'FamilySize']]
+y = df.loc[:, 'Survived']
+
+X.head(5)
+
+
+
+
+#1: one-hot encoding
+
+#one hot encoding
+X_ohe = pd.get_dummies(X)
+X_ohe.head(5)
+
+X_ohe.shape
+X_ohe.columns
+
+#train test split
+X_train, X_valid, y_train, y_valid = train_test_split(X_ohe, y, test_size = 0.2, random_state = 2019)
+print(X_train.shape)
+print(X_valid.shape)
+print(len(y_train))
+print(len(y_valid))
+
+
+#xgboost
+
+train_dmx = xgb.DMatrix(data = X_train, label = y_train)
+valid_dmx = xgb.DMatrix(data = X_valid, label = y_valid)
+
+params_ = {'objective': 'binary:logistic', 'eval_metric': ['auc']}
+
+model = xgb.train(params = params_,
+                  dtrain = train_dmx,
+                  num_boost_round = 500,
+                  early_stopping_rounds = 10,
+                  evals = [(train_dmx, 'training'), (valid_dmx, 'validation')],
+                  verbose_eval = 10)
+
+
+preds = model.predict(valid_dmx)
+preds
+
+len(preds)
+
+print(model.get_score())
+print(model.get_fscore())
+
+
+import matplotlib.pyplot as plt
+
+fig, ax = plt.subplots(figsize = (6, 9))
+xgb.plot_importance(model, ax = ax)
+
+
+
+#numeric encoding
+X_num = X.copy()
+
+X_num.head(5)
+
+#categorical variables: Sex, Ticket, Cabin, Embarked, Title
+
+np.unique(X_num['Sex'])
+np.unique(X_num['Ticket'])
+np.unique(X_num['Cabin'])
+np.unique(X_num['Embarked'])
+np.unique(X_num['Title'])
+
+
+encoding_sex = {'female': 0, 'male': 1}
+encoding_ticket = {'1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9,
+                   'A': 10, 'C': 11, 'F': 12, 'L': 13, 'P': 14, 'S': 15, 'W': 16}
+encoding_cabin = {'Unknown': 0, 'A': 1, 'B': 2, 'C': 3, 'D': 4, 'E': 5, 'F': 6, 'G': 7, 'T': 8}
+encoding_embarked = {'Unknown': 0, 'C': 1, 'Q': 2, 'S': 3}
+encoding_title = {'Other': 0, 'Mr': 1, 'Miss': 2, 'Mrs': 3, 'Master': 4}
+
+
+X_num['Sex'] = encode_f(X_num['Sex'], encoding_sex)
+X_num['Ticket'] = encode_f(X_num['Ticket'], encoding_ticket)
+X_num['Cabin'] = encode_f(X_num['Cabin'], encoding_cabin)
+X_num['Embarked'] = encode_f(X_num['Embarked'], encoding_embarked)
+X_num['Title'] = encode_f(X_num['Title'], encoding_title).value_counts()
+
+X_num.head(5)
+X_num.columns
+
+
+
+#train test split
+X_train, X_valid, y_train, y_valid = train_test_split(X_num, y, test_size = 0.2, random_state = 2019)
+print(X_train.shape)
+print(X_valid.shape)
+print(len(y_train))
+print(len(y_valid))
+
+
+#xgboost
+
+train_dmx = xgb.DMatrix(data = X_train, label = y_train)
+valid_dmx = xgb.DMatrix(data = X_valid, label = y_valid)
+
+params_ = {'objective': 'binary:logistic', 'eval_metric': ['auc']}
+
+model = xgb.train(params = params_,
+                  dtrain = train_dmx,
+                  num_boost_round = 500,
+                  early_stopping_rounds = 10,
+                  evals = [(train_dmx, 'training'), (valid_dmx, 'validation')],
+                  verbose_eval = 10)
+
+
+preds = model.predict(valid_dmx)
+preds
+
+len(preds)
+
+print(model.get_score())
+print(model.get_fscore())
+
+
+import matplotlib.pyplot as plt
+
+fig, ax = plt.subplots(figsize = (6, 9))
+xgb.plot_importance(model, ax = ax)
